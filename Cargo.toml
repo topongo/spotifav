@@ -1,0 +1,9 @@
+[package]
+name = "spotifav"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rspotify = "0.13.3"
+tokio = { version = "1.40", features = ["full"] }
+open = "5.3.0"
