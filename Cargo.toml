@@ -2,6 +2,10 @@
 name = "spotifav"
 version = "0.1.0"
 edition = "2021"
+description = "An incredibly simple tool that adds/removes the currently playing track to favorites."
+license = "GPL-3.0"
+authors = ["Lorenzo Bodini <lb@prabo.org>"]
+repository = "https://github.com/topongo/spotifav"
 
 [dependencies]
 rspotify = "0.13.3"
