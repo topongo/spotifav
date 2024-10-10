@@ -81,7 +81,7 @@ struct MockOAuth {
     pub state: String,
 }
 
-pub async fn do_toggle() -> Result<(), Box<dyn std::error::Error>> {
+pub async fn get_client() -> Result<AuthCodeSpotify, Box<dyn std::error::Error>> {
     let conf = Config {
         token_cached: true,
         token_refreshing: true,
@@ -108,26 +108,31 @@ pub async fn do_toggle() -> Result<(), Box<dyn std::error::Error>> {
                 Some(t) => *spotify.get_token().lock().await.expect("cannot lock spotify token mutex") = Some(t),
                 None => login(&spotify).await?,
             }
-            spotify.refresh_token().await?;
-            match spotify.current_user_playing_item().await? {
-                Some(item) => match item.item {
-                    Some(i) => match i {
-                        PlayableItem::Track(t) => {
-                            let id = t.id.ok_or("Failed to get track id")?;
-                            if spotify.current_user_saved_tracks_contains(vec![id.clone()]).await?[0] {
-                                spotify.current_user_saved_tracks_delete(vec![id]).await?;
-                            } else {
-                                spotify.current_user_saved_tracks_add(vec![id]).await?;
-                            }
-                        },
-                        PlayableItem::Episode(e) => println!("Currently playing: {}", e.name),
-                    }
-                    None => println!("Nothing is currently playing."),
-                },
-                None => println!("Nothing is currently playing."),
-            }
+            spotify.refresh_token().await?; 
         }
         Err(_) => login(&spotify).await?,
+    }
+    spotify.refresh_token().await?;
+    Ok(spotify)
+}
+
+pub async fn do_toggle(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::error::Error>> {
+    match spotify.current_user_playing_item().await? {
+        Some(item) => match item.item {
+            Some(i) => match i {
+                PlayableItem::Track(t) => {
+                    let id = t.id.ok_or("Failed to get track id")?;
+                    if spotify.current_user_saved_tracks_contains(vec![id.clone()]).await?[0] {
+                        spotify.current_user_saved_tracks_delete(vec![id]).await?;
+                    } else {
+                        spotify.current_user_saved_tracks_add(vec![id]).await?;
+                    }
+                },
+                PlayableItem::Episode(e) => println!("Currently playing: {}", e.name),
+            }
+            None => println!("Nothing is currently playing."),
+        },
+        None => println!("Nothing is currently playing."),
     }
     Ok(())
 }

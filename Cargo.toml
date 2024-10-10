@@ -1,6 +1,6 @@
 [package]
 name = "spotifav"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 description = "An incredibly simple tool that adds/removes the currently playing track to favorites."
 license = "GPL-3.0"
