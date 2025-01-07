@@ -1,11 +1,22 @@
-use std::{collections::HashSet, fs::{create_dir_all, File}, io::Write};
+use std::{collections::HashSet, fs::{create_dir_all, File}, io::Write, path::PathBuf};
 
-use rspotify::{model::PlayableItem, prelude::{BaseClient, OAuthClient}, AuthCodeSpotify, Config, Credentials, OAuth};
+use rspotify::{model::{FullTrack, PlayableItem, TrackId}, prelude::{BaseClient, OAuthClient}, AuthCodeSpotify, Config, Credentials, OAuth};
 use serde::Deserialize;
 
 static APP_SCOPES: [&str; 1] = [
     "user-read-currently-playing",
 ];
+
+fn get_data_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
+    let p = directories::ProjectDirs::from("org", "prabo", "spotifav")
+        .ok_or("can't get data folder")?
+        .config_dir()
+        .to_path_buf();
+    if !p.exists() {
+        create_dir_all(&p)?;
+    }
+    Ok(p)
+}
 
 async fn login(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::error::Error>> {
     let url = spotify.get_authorize_url(false)?;
@@ -28,10 +39,7 @@ async fn login(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::error::Erro
 }
 
 fn read_configs() -> Result<AuthConfig, Box<dyn std::error::Error>> {
-    let configs = directories::ProjectDirs::from("org", "prabo", "spotifav")
-        .ok_or("Failed to get project directories")?
-        .config_dir()
-        .join("config.toml");
+    let configs = get_data_dir()?.join("config.toml");
     if !configs.exists() {
         create_dir_all(configs.parent().unwrap())?;
         File::create(&configs)?;
@@ -85,6 +93,7 @@ pub async fn get_client() -> Result<AuthCodeSpotify, Box<dyn std::error::Error>>
     let conf = Config {
         token_cached: true,
         token_refreshing: true,
+        cache_path: get_data_dir()?.join(".token_cache.json"), 
         ..Config::default()
     };
     let auth_conf = match Credentials::from_env() {
@@ -128,7 +137,7 @@ pub async fn do_toggle(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::err
                         spotify.current_user_saved_tracks_add(vec![id]).await?;
                     }
                 },
-                PlayableItem::Episode(e) => println!("Currently playing: {}", e.name),
+                PlayableItem::Episode(e) => println!("no track is playing: an episode is: {}", e.name),
             }
             None => println!("Nothing is currently playing."),
         },
@@ -137,3 +146,38 @@ pub async fn do_toggle(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
+
+pub async fn poll(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::error::Error>> {
+    let mut track: Option<TrackId> = None;
+    let mut ostate = None;
+    let mut state = false;
+    loop {
+        if let Some(Some(PlayableItem::Track(t))) = spotify.current_user_playing_item().await?.map(|i| i.item) {
+            match track {
+                Some(ref io) => {
+                    match t.id {
+                        Some(id) => {
+                            if id != *io {
+                                state = spotify.current_user_saved_tracks_contains(vec![id.clone()]).await?[0];
+                                track = Some(id);
+                            } 
+                        }
+                        None => {
+                            state = false;
+                            track = None
+                        }
+                    }
+                }
+                None => {
+                    state = spotify.current_user_saved_tracks_contains(vec![t.id.clone().unwrap()]).await?[0];
+                    track = t.id;
+                }
+            }
+        } 
+        if ostate != Some(state) {
+            println!("{}", state);
+            ostate = Some(state);
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+    }
+}
