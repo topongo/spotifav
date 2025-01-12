@@ -125,7 +125,7 @@ pub async fn get_client() -> Result<AuthCodeSpotify, Box<dyn std::error::Error>>
     Ok(spotify)
 }
 
-pub async fn do_toggle(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn do_toggle(spotify: &AuthCodeSpotify) -> Result<bool, Box<dyn std::error::Error>> {
     match spotify.current_user_playing_item().await? {
         Some(item) => match item.item {
             Some(i) => match i {
@@ -133,17 +133,18 @@ pub async fn do_toggle(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::err
                     let id = t.id.ok_or("Failed to get track id")?;
                     if spotify.current_user_saved_tracks_contains(vec![id.clone()]).await?[0] {
                         spotify.current_user_saved_tracks_delete(vec![id]).await?;
+                        Ok(false)
                     } else {
                         spotify.current_user_saved_tracks_add(vec![id]).await?;
+                        Ok(true)
                     }
                 },
-                PlayableItem::Episode(e) => println!("no track is playing: an episode is: {}", e.name),
+                PlayableItem::Episode(e) => Err(format!("no track is playing: an episode is: {}", e.name).into()),
             }
-            None => println!("Nothing is currently playing."),
+            None => Err("Nothing is currently playing.".into()),
         },
-        None => println!("Nothing is currently playing."),
+        None => Err("Nothing is currently playing.".into()),
     }
-    Ok(())
 }
 
 
