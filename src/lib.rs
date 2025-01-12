@@ -1,6 +1,6 @@
 use std::{collections::HashSet, fs::{create_dir_all, File}, io::Write, path::PathBuf};
 
-use rspotify::{model::{FullTrack, PlayableItem, TrackId}, prelude::{BaseClient, OAuthClient}, AuthCodeSpotify, Config, Credentials, OAuth};
+use rspotify::{model::{PlayableItem, TrackId}, prelude::{BaseClient, OAuthClient}, AuthCodeSpotify, Config, Credentials, OAuth};
 use serde::Deserialize;
 
 static APP_SCOPES: [&str; 1] = [
@@ -160,7 +160,7 @@ pub async fn poll(spotify: &AuthCodeSpotify) -> Result<(), Box<dyn std::error::E
                             if id != *io {
                                 state = spotify.current_user_saved_tracks_contains(vec![id.clone()]).await?[0];
                                 track = Some(id);
-                            } 
+                            }
                         }
                         None => {
                             state = false;
