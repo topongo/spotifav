@@ -8,12 +8,12 @@ authors = ["Lorenzo Bodini <lb@prabo.org>"]
 repository = "https://github.com/topongo/spotifav"
 
 [dependencies]
-rspotify = "0.13.3"
-tokio = { version = "1.40", features = ["full"] }
-open = "5.3.0"
+rspotify = "^0.14.0"
+tokio = { version = "^1.45", features = ["full"] }
+open = "^5.3.0"
 serde = { version = "^1.0", features = ["derive"] }
-toml = "0.8.19"
-directories = "5.0.1"
+toml = "^0.8.19"
+directories = "^6.0.0"
 
 [[bin]]
 name = "spotifav"
